@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+
+from os import listdir, mkdir, pardir, path, system
+from os.path import abspath, dirname, exists, isfile
+from shutil import copy, copytree, rmtree
+from urllib2 import urlopen
+from zipfile import ZipFile
+
+here = abspath(path.join(dirname(__file__), pardir))
+
+# First make a temporary directory for all our crap.
+tmp_dirname = path.join(here, 'tmp')
+
+if exists(tmp_dirname):
+    rmtree(tmp_dirname)
+
+mkdir(tmp_dirname)
+
+# Download the latest bootstrap from github
+bootstrap_repo_online = urlopen('https://github.com/twitter/bootstrap/zipball/master')
+bootstrap_repo_zipname = path.join(here, 'tmp', 'bootstrap_repo.zip')
+
+print 'Downloading most recent Bootstrap repo...'
+with open(bootstrap_repo_zipname, 'w') as bootstrap_repo_zip:
+    bootstrap_repo_zip.write(bootstrap_repo_online.read())
+
+print 'Extracting repository...'
+with open(bootstrap_repo_zipname) as bootstrap_repo_zip:
+    bootstrap_repo_zip = ZipFile(bootstrap_repo_zip)
+    bootstrap_repo_dirinfo = bootstrap_repo_zip.infolist()[0]
+    bootstrap_repo_zip.extractall(tmp_dirname)
+
+    bootstrap_repo_dirname = path.join(here, 'tmp', bootstrap_repo_dirinfo.filename)
+
+# Clear any existing static files
+static_dirname = path.join(here, 'bootstrapped', 'static')
+if exists(static_dirname):
+    rmtree(static_dirname)
+    mkdir(static_dirname)
+
+# Copy bootstrap dev files
+print 'Inserting Bootstrap development files into the project...'
+for asset_type in ['js', 'img', 'less']:
+    asset_dirname = path.join(static_dirname, asset_type)
+
+    if exists(asset_dirname):
+        rmtree(asset_dirname)
+
+    copytree(path.join(bootstrap_repo_dirname, asset_type), asset_dirname)
+
+# Download a release to get the css and js files
+#bootstrap_release_online = urlopen('http://twitter.github.com/bootstrap/assets/bootstrap.zip')
+#bootstrap_release_zipname = path.join(here, 'tmp', 'bootstrap_release.zip')
+#
+#print 'Downloading most recent Bootstrap release...'
+#with open(bootstrap_release_zipname, 'w') as bootstrap_release_zip:
+#    bootstrap_release_zip.write(bootstrap_release_online.read())
+#
+#print 'Extracting release...'
+#with open(bootstrap_release_zipname) as bootstrap_release_zip:
+#    bootstrap_release_zip = ZipFile(bootstrap_release_zip)
+#    bootstrap_release_dirinfo = bootstrap_release_zip.infolist()[0]
+#    bootstrap_release_zip.extractall(tmp_dirname)
+#
+#    bootstrap_release_dirname = path.join(here, 'tmp', bootstrap_release_dirinfo.filename)
+
+# Build a release to get the css and js files;
+#  - requires lessc and uglifyjs.  on Ubuntu, these can be installed with:
+#      sudo apt-get install libnode-lessc libnode-uglifyjs
+system('make -C "' + bootstrap_repo_dirname + '" bootstrap')
+bootstrap_release_dirname = path.join(bootstrap_repo_dirname, 'bootstrap')
+
+# Copy bootstrap release files
+print 'Inserting Bootstrap release files into the project...'
+for asset_type in ['js', 'css']:
+    asset_dirname = path.join(static_dirname, asset_type)
+
+    if not exists(asset_dirname):
+        mkdir(asset_dirname)
+
+    for filename in listdir(path.join(bootstrap_release_dirname, asset_type)):
+        filepath = path.join(bootstrap_release_dirname, asset_type, filename)
+
+        if isfile(filepath):
+            copy(filepath, asset_dirname)
+
+# Clean up
+print 'Cleaning up...'
+rmtree(tmp_dirname)
+
+print 'Done!'
