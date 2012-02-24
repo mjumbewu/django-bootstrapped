@@ -1,15 +1,27 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+from argparse import ArgumentParser
+from glob import glob
 from os import listdir, mkdir, pardir, path, system
 from os.path import abspath, dirname, exists, isfile
 from shutil import copy, copytree, rmtree
 from urllib2 import urlopen
 from zipfile import ZipFile
 
-here = abspath(path.join(dirname(__file__), pardir))
+#
+# Parse the arguments
+#
+parser = ArgumentParser(description='Update the project\'s static assets')
+parser.add_argument('-l', '--lessversion', required=True,
+                   help='Which version of less to use (e.g., 1.2.1)')
 
+args = parser.parse_args()
+
+#
 # First make a temporary directory for all our crap.
+#
+here = abspath(path.join(dirname(__file__), pardir))
 tmp_dirname = path.join(here, 'tmp')
 
 if exists(tmp_dirname):
@@ -17,7 +29,9 @@ if exists(tmp_dirname):
 
 mkdir(tmp_dirname)
 
+#
 # Download the latest bootstrap from github
+#
 bootstrap_repo_online = urlopen('https://github.com/twitter/bootstrap/zipball/master')
 bootstrap_repo_zipname = path.join(here, 'tmp', 'bootstrap_repo.zip')
 
@@ -33,13 +47,17 @@ with open(bootstrap_repo_zipname) as bootstrap_repo_zip:
 
     bootstrap_repo_dirname = path.join(here, 'tmp', bootstrap_repo_dirinfo.filename)
 
+#
 # Clear any existing static files
+#
 static_dirname = path.join(here, 'bootstrapped', 'static')
 if exists(static_dirname):
     rmtree(static_dirname)
     mkdir(static_dirname)
 
+#
 # Copy bootstrap dev files
+#
 print 'Inserting Bootstrap development files into the project...'
 for asset_type in ['js', 'img', 'less']:
     asset_dirname = path.join(static_dirname, asset_type)
@@ -49,23 +67,9 @@ for asset_type in ['js', 'img', 'less']:
 
     copytree(path.join(bootstrap_repo_dirname, asset_type), asset_dirname)
 
-# Download a release to get the css and js files
-#bootstrap_release_online = urlopen('http://twitter.github.com/bootstrap/assets/bootstrap.zip')
-#bootstrap_release_zipname = path.join(here, 'tmp', 'bootstrap_release.zip')
 #
-#print 'Downloading most recent Bootstrap release...'
-#with open(bootstrap_release_zipname, 'w') as bootstrap_release_zip:
-#    bootstrap_release_zip.write(bootstrap_release_online.read())
-#
-#print 'Extracting release...'
-#with open(bootstrap_release_zipname) as bootstrap_release_zip:
-#    bootstrap_release_zip = ZipFile(bootstrap_release_zip)
-#    bootstrap_release_dirinfo = bootstrap_release_zip.infolist()[0]
-#    bootstrap_release_zip.extractall(tmp_dirname)
-#
-#    bootstrap_release_dirname = path.join(here, 'tmp', bootstrap_release_dirinfo.filename)
-
 # Build a release to get the css and js files;
+#
 #  - requires lessc and uglifyjs.  on Ubuntu, these can be installed with:
 #      sudo apt-get install libnode-lessc libnode-uglifyjs
 system('make -C "' + bootstrap_repo_dirname + '" bootstrap')
@@ -85,7 +89,45 @@ for asset_type in ['js', 'css']:
         if isfile(filepath):
             copy(filepath, asset_dirname)
 
+#
+# Download the latest less.js from github
+#
+lessjs_repo_online = urlopen('https://github.com/cloudhead/less.js/zipball/master')
+lessjs_repo_zipname = path.join(here, 'tmp', 'lessjs_repo.zip')
+
+print 'Downloading most recent Less.js repo...'
+with open(lessjs_repo_zipname, 'w') as lessjs_repo_zip:
+    lessjs_repo_zip.write(lessjs_repo_online.read())
+
+print 'Extracting repository...'
+with open(lessjs_repo_zipname) as lessjs_repo_zip:
+    lessjs_repo_zip = ZipFile(lessjs_repo_zip)
+    lessjs_repo_dirinfo = lessjs_repo_zip.infolist()[0]
+    lessjs_repo_zip.extractall(tmp_dirname)
+
+    lessjs_repo_dirname = path.join(here, 'tmp', lessjs_repo_dirinfo.filename)
+
+#
+# Build a release to get the js files;
+#
+#  - requires uglifyjs.  on Ubuntu, these can be installed with:
+#      sudo apt-get install libnode-uglifyjs
+system('make -C "' + lessjs_repo_dirname + '" less min')
+lessjs_release_dirname = path.join(lessjs_repo_dirname, 'dist')
+
+# Copy less.js release files
+print 'Inserting Less.js release files into the project...'
+asset_dirname = path.join(static_dirname, 'js')
+
+if not exists(asset_dirname):
+    mkdir(asset_dirname)
+
+copy(path.join(lessjs_release_dirname, 'less-' + args.lessversion + '.js'), path.join(asset_dirname, 'less.js'))
+copy(path.join(lessjs_release_dirname, 'less-' + args.lessversion + '.min.js'), path.join(asset_dirname, 'less.min.js'))
+
+#
 # Clean up
+#
 print 'Cleaning up...'
 rmtree(tmp_dirname)
 
