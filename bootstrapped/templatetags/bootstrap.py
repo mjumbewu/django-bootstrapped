@@ -56,7 +56,7 @@ def bootstrap_css():
 def bootstrap_less():
     output=[
             '<link rel="stylesheet/less" type="text/css" href="%sless/bootstrap.less">' % settings.STATIC_URL,
-            '<script src="%sless.js" type="text/javascript"></script>' % settings.STATIC_URL,
+            '<script src="%sjs/less.js" type="text/javascript"></script>' % settings.STATIC_URL,
         ]
     return '\n'.join(output)
 
