@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-bootstrapped',
-    version='1.0.2-dev',
+    version='1.0.3-dev',
     description='A reusable Django application to quickly integrate the Bootstrap toolkit from Twitter.',
     long_description=open('README.rst').read(),
     # Get more strings from http://www.python.org/pypi?:action=list_classifiers
