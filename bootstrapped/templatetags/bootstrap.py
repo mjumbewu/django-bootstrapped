@@ -40,7 +40,7 @@ class BootstrapJSNode(template.Node):
 @register.simple_tag
 def bootstrap_custom_less(less):
     output=[
-            '<link rel="stylesheet/less" type="text/css" href="%sless/%s" media="all">' % (settings.STATIC_URL, less),
+            '<link rel="stylesheet/less" type="text/less" href="%sless/%s" media="all">' % (settings.STATIC_URL, less),
             '<script src="%sjs/less.min.js" type="text/javascript"></script>' % settings.STATIC_URL,
         ]
     return '\n'.join(output)
@@ -55,7 +55,7 @@ def bootstrap_css():
 @register.simple_tag
 def bootstrap_less():
     output=[
-            '<link rel="stylesheet/less" type="text/css" href="%sless/bootstrap.less">' % settings.STATIC_URL,
+            '<link rel="stylesheet/less" type="text/less" href="%sless/bootstrap.less">' % settings.STATIC_URL,
             '<script src="%sjs/less.js" type="text/javascript"></script>' % settings.STATIC_URL,
         ]
     return '\n'.join(output)
